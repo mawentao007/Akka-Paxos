@@ -4,10 +4,9 @@ import akka.actor._
 
 object Acceptor {
   def main(args:Array[String]) {
-
-    implicit val system = ActorSystem("Akka-Paxos")
-    val localActor = system.actorOf(Props[Acceptor], name = "Acceptor") // the local actor
-    localActor ! "START" // start the action
+    val acceptor = new Acceptor
+    acceptor.start("acceptorOne")
+    
 
   }
 }
@@ -15,8 +14,11 @@ object Acceptor {
 
 class Acceptor {
 
-  def start(acceptorId:String): Unit ={
 
+  var acceptorActor:ActorRef = _
+  def start(acceptorId:String): Unit ={
+    implicit val system = ActorSystem("Akka-Paxos")
+    acceptorActor = system.actorOf(Props[Acceptor], name = acceptorId)
   }
 
   class AcceptorActor extends Actor {
