@@ -1,10 +1,11 @@
 package Acceptor
 
+import SystemMessage.RegisterAcceptor
 import akka.actor._
 
 object Acceptor {
   def main(args:Array[String]) {
-    val leaderAddress = "akka.tcp://Akka-Paxos@127.0.0.1:5150/user/Leader"
+    val leaderAddress = "akka.tcp://Akka-Paxos@127.0.0.1:5150/user/leader"
     val systemName="Akka-Paxos"
     val acceptorName = "acceptorOne"
     val acceptor = new Acceptor
@@ -38,9 +39,15 @@ class Acceptor {
 
     leader ! "love"
 
+
+    override def preStart(): Unit ={
+      leader ! RegisterAcceptor(acceptorName)
+    }
+
     def receive = {
-      case AcceptorRegistered(acceptorName) =>
-        println("leader reply me " + acceptorName)
+      case msg:String =>
+        println(msg)
+
 
     }
   }

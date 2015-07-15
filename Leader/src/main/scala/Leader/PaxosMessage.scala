@@ -1,4 +1,4 @@
-package Leader
+package SystemMessage
 
 /**
  * Created by marvin on 15-7-14.

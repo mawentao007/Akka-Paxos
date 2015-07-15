@@ -1,5 +1,6 @@
 package Leader
 
+import SystemMessage.RegisterAcceptor
 import akka.actor._
 import scala.collection.mutable._
 
@@ -27,11 +28,12 @@ class Leader {
   class LeaderActor extends Actor {
 
     def receive = {
-      /*case RegisterAcceptor(acceptorName) =>
+      case RegisterAcceptor(acceptorName) =>
         acceptorIdToActorRef.put(acceptorName,sender)
-        replyAcceptor*/
+        replyAcceptor
+
       case msg:String => println(msg)
-        leaderActor ! "live"
+
     }
   }
 
