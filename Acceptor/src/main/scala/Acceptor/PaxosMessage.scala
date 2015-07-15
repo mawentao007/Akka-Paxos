@@ -5,4 +5,8 @@ package Acceptor
  */
 sealed trait PaxosMessage
 
-case class RegisterAcceptor(acceptorId:String) extends PaxosMessage
+case class RegisterAcceptor(acceptorName:String) extends PaxosMessage
+
+case class AcceptorRegistered(acceptorName:String) extends PaxosMessage
+
+

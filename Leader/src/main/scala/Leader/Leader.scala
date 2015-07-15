@@ -5,8 +5,10 @@ import scala.collection.mutable._
 
 object Leader{
   def main(args:Array[String]) {
+    val systemName="Akka-Paxos"
+    val leaderName = "leader"
     val leader = new Leader
-    leader.start("leader")
+    leader.start(systemName,leaderName)
   }
 }
 
@@ -16,19 +18,26 @@ class Leader {
 
   val acceptorIdToActorRef = new HashMap[String,ActorRef]
 
-  def start(leaderName:String): Unit ={
-    val system = ActorSystem("Akka-Paxos")
-    leaderActor = system.actorOf(Props[LeaderActor],name = leaderName)
+  def start(systemName:String,leaderName:String): Unit ={
+    val system = ActorSystem(systemName)
+    leaderActor = system.actorOf(Props(new LeaderActor),name = leaderName)
+    leaderActor ! "self"
   }
 
   class LeaderActor extends Actor {
-    def receive = {
-      case RegisterAcceptor(acceptorId) =>
-        acceptorIdToActorRef.put(acceptorId,sender)
 
-      case msg: String =>
-        println(s"Leader received message '$msg'")
-        sender ! "Hello from the Acceptor"
+    def receive = {
+      /*case RegisterAcceptor(acceptorName) =>
+        acceptorIdToActorRef.put(acceptorName,sender)
+        replyAcceptor*/
+      case msg:String => println(msg)
+        leaderActor ! "live"
+    }
+  }
+
+  def replyAcceptor: Unit ={
+    acceptorIdToActorRef.foreach{case (name,actorRef) =>
+        actorRef ! name
     }
   }
 
