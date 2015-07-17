@@ -1,28 +1,30 @@
 package Leader
 
-import SystemMessage.RegisterAcceptor
+import SystemMessage._
 import akka.actor._
 import scala.collection.mutable._
 
 object Leader{
   def main(args:Array[String]) {
     val systemName="Akka-Paxos"
-    val leaderName = "leader"
-    val leader = new Leader
-    leader.start(systemName,leaderName)
+    val name = "leader"
+    val leader = new Leader(name)
+    leader.start(systemName)
   }
 }
 
-class Leader {
+class Leader(val name:String) {
 
   var leaderActor:ActorRef = _
 
+  var instanceIdInt = 0
+
+
   val acceptorIdToActorRef = new HashMap[String,ActorRef]
 
-  def start(systemName:String,leaderName:String): Unit ={
+  def start(systemName:String): Unit ={
     val system = ActorSystem(systemName)
-    leaderActor = system.actorOf(Props(new LeaderActor),name = leaderName)
-    leaderActor ! "self"
+    leaderActor = system.actorOf(Props(new LeaderActor),name = name)
   }
 
   class LeaderActor extends Actor {
@@ -39,7 +41,14 @@ class Leader {
 
   def replyAcceptor: Unit ={
     acceptorIdToActorRef.foreach{case (name,actorRef) =>
-        actorRef ! name
+        actorRef ! AcceptorRegistered(name)
+    }
+  }
+
+  def proposeInstance(): Unit ={
+    val instanceId:String = instanceIdInt.toString + name
+    acceptorIdToActorRef.foreach{case (name,actorRef) =>
+      actorRef ! Prepare(instanceId,)
     }
   }
 

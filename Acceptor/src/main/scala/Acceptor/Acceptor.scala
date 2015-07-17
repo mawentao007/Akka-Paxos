@@ -1,6 +1,6 @@
 package Acceptor
 
-import SystemMessage.RegisterAcceptor
+import SystemMessage.{AcceptorRegistered, RegisterAcceptor}
 import akka.actor._
 
 object Acceptor {
@@ -35,9 +35,7 @@ class Acceptor {
 
     // create the remote actor,akka.tcp is very important
     val leader = context.actorSelection(leaderAddress)
-    var counter = 0
 
-    leader ! "love"
 
 
     override def preStart(): Unit ={
@@ -47,6 +45,9 @@ class Acceptor {
     def receive = {
       case msg:String =>
         println(msg)
+
+      case AcceptorRegistered(acceptorName) =>
+        println("receiving Acceptor Registered message " + acceptorName)
 
 
     }
