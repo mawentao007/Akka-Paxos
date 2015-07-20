@@ -1,6 +1,6 @@
 package Acceptor
 
-import SystemMessage.{AcceptorRegistered, RegisterAcceptor}
+import SystemMessage.{Prepare, AcceptorRegistered, RegisterAcceptor}
 import akka.actor._
 
 object Acceptor {
@@ -48,6 +48,9 @@ class Acceptor {
 
       case AcceptorRegistered(acceptorName) =>
         println("receiving Acceptor Registered message " + acceptorName)
+
+      case Prepare(instanceId,ballotId) =>
+        println(instanceId + " " + ballotId)
 
 
     }

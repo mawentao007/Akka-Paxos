@@ -19,6 +19,7 @@ class Leader(val name:String) {
 
   var instanceIdInt = 0
 
+  val instanceIdToBallotId = new HashMap[String,Int]
 
   val acceptorIdToActorRef = new HashMap[String,ActorRef]
 
@@ -36,19 +37,41 @@ class Leader(val name:String) {
 
       case msg:String => println(msg)
 
+      case Prepare_ack(instanceId,ballotId,value) =>
+        value match{
+          case None => 
+        }
+
     }
   }
 
   def replyAcceptor: Unit ={
-    acceptorIdToActorRef.foreach{case (name,actorRef) =>
-        actorRef ! AcceptorRegistered(name)
+    acceptorIdToActorRef.foreach{case (senderName,actorRef) =>
+        actorRef ! AcceptorRegistered(senderName)
+        proposeNewInstance
+        proposeNewInstance
+        val iId:String = instanceIdInt.toString() + name
+        proposeInstance(iId)
     }
   }
 
-  def proposeInstance(): Unit ={
+  def proposeNewInstance = {
+    instanceIdInt = instanceIdInt + 1
     val instanceId:String = instanceIdInt.toString + name
+    val ballotId = 0
+    instanceIdToBallotId.update(instanceId,ballotId)
+
     acceptorIdToActorRef.foreach{case (name,actorRef) =>
-      actorRef ! Prepare(instanceId,)
+      actorRef ! Prepare(instanceId,ballotId)
+    }
+  }
+
+  def proposeInstance(instanceId:String): Unit ={
+    val ballotId = instanceIdToBallotId(instanceId) + 1
+    instanceIdToBallotId.update(instanceId,ballotId)
+
+    acceptorIdToActorRef.foreach{case (name,actorRef) =>
+      actorRef ! Prepare(instanceId,ballotId)
     }
   }
 
