@@ -2,6 +2,7 @@ package Leader
 
 import SystemMessage._
 import akka.actor._
+import scala.collection.mutable
 import scala.collection.mutable._
 
 object Leader{
@@ -19,9 +20,12 @@ class Leader(val name:String) {
 
   var instanceIdInt = 0
 
-  val instanceIdToBallotId = new HashMap[String,Int]
-
   val acceptorIdToActorRef = new HashMap[String,ActorRef]
+
+  val instanceIdToInstance = new HashMap[String,Instance]
+
+  val request:Stack[String] = new Stack[String]()
+
 
   def start(systemName:String): Unit ={
     val system = ActorSystem(systemName)
@@ -48,31 +52,29 @@ class Leader(val name:String) {
   def replyAcceptor: Unit ={
     acceptorIdToActorRef.foreach{case (senderName,actorRef) =>
         actorRef ! AcceptorRegistered(senderName)
-        proposeNewInstance
-        proposeNewInstance
-        val iId:String = instanceIdInt.toString() + name
-        proposeInstance(iId)
+
     }
   }
 
   def proposeNewInstance = {
-    instanceIdInt = instanceIdInt + 1
-    val instanceId:String = instanceIdInt.toString + name
-    val ballotId = 0
-    instanceIdToBallotId.update(instanceId,ballotId)
+    val instance = new Instance(this,generateNewInstanceId)
+    instanceIdToInstance.put(instance.instanceId,instance)
+
+    acceptorIdToActorRef.foreach{case (name,actorRef) =>
+      actorRef ! Prepare(instance.instanceId,0)
+    }
+  }
+
+  def reProposeInstance(instanceId:String,ballotId:Int): Unit ={
 
     acceptorIdToActorRef.foreach{case (name,actorRef) =>
       actorRef ! Prepare(instanceId,ballotId)
     }
   }
 
-  def proposeInstance(instanceId:String): Unit ={
-    val ballotId = instanceIdToBallotId(instanceId) + 1
-    instanceIdToBallotId.update(instanceId,ballotId)
-
-    acceptorIdToActorRef.foreach{case (name,actorRef) =>
-      actorRef ! Prepare(instanceId,ballotId)
-    }
+  private def generateNewInstanceId:String = {
+    instanceIdInt = instanceIdInt + 1
+    instanceIdInt.toString + name
   }
 
 }
