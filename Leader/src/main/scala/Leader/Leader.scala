@@ -57,9 +57,11 @@ class Leader(val name:String) {
   }
 
   def proposeNewInstance = {
+    //创建新的实例并添加到map中记录
     val instance = new Instance(this,generateNewInstanceId)
     instanceIdToInstance.put(instance.instanceId,instance)
 
+    //将该实例发送给所有的Acceptor进行准备工作
     acceptorIdToActorRef.foreach{case (name,actorRef) =>
       actorRef ! Prepare(instance.instanceId,0)
     }
