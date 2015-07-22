@@ -4,6 +4,7 @@ import SystemMessage._
 import akka.actor._
 
 import scala.collection.mutable.HashMap
+import Util.Logging
 
 object Acceptor {
   def main(args:Array[String]) {
@@ -17,7 +18,7 @@ object Acceptor {
 }
 
 
-class Acceptor(val acceptorName:String) {
+class Acceptor(val acceptorName:String) extends Logging{
 
   var acceptorActor:ActorRef = _
   var leaderAddress:String = _
@@ -59,11 +60,13 @@ class Acceptor(val acceptorName:String) {
     }
   }
 
+
   def sendPrepareAck(instanceId:String,ballotId:Int,value:Option[String]): Unit ={
     println("send prepare ack value is " + value)
     leader ! Prepare_ack(instanceId,ballotId,value)
   }
 
+  //收到的Instance以前从未遇到过
   private def handleNewInstance(instanceId:String,ballotId:Int): Instance ={
     println("handle new Instance")
     val newInstance = new Instance(this,instanceId)

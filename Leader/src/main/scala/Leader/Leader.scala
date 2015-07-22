@@ -2,8 +2,8 @@ package Leader
 
 import SystemMessage._
 import akka.actor._
-import scala.collection.mutable
 import scala.collection.mutable._
+import Util.Logging
 
 object Leader{
   def main(args:Array[String]) {
@@ -14,7 +14,7 @@ object Leader{
   }
 }
 
-class Leader(val name:String) {
+class Leader(val name:String) extends Logging{
 
   var leaderActor:ActorRef = _
 
@@ -30,6 +30,7 @@ class Leader(val name:String) {
   def start(systemName:String): Unit ={
     val system = ActorSystem(systemName)
     leaderActor = system.actorOf(Props(new LeaderActor),name = name)
+    logInfo("start")
 
   }
 
@@ -38,10 +39,12 @@ class Leader(val name:String) {
 
     def receive = {
       case RegisterAcceptor(acceptorName) =>
+        logInfo("RegisterAcceptor " + acceptorName)
         acceptorIdToActorRef.put(acceptorName,sender)
         replyAcceptor
         proposeNewInstance
         proposeNewInstance
+
 
       case msg:String => println(msg)
 
