@@ -30,20 +30,27 @@ class Leader(val name:String) {
   def start(systemName:String): Unit ={
     val system = ActorSystem(systemName)
     leaderActor = system.actorOf(Props(new LeaderActor),name = name)
+
   }
 
+  //leader的消息接口，负责首发消息
   class LeaderActor extends Actor {
 
     def receive = {
       case RegisterAcceptor(acceptorName) =>
         acceptorIdToActorRef.put(acceptorName,sender)
         replyAcceptor
+        proposeNewInstance
+        proposeNewInstance
 
       case msg:String => println(msg)
 
       case Prepare_ack(instanceId,ballotId,value) =>
+        println("receive prepare_ack " + instanceId + " " + ballotId)
+        println(value)
         value match{
-          case None => 
+          case None => println("No value of " + "[ " + instanceId + " , " + ballotId + " ]")
+          case Some(s) => "string is " + s
         }
 
     }
@@ -69,6 +76,8 @@ class Leader(val name:String) {
 
   def reProposeInstance(instanceId:String,ballotId:Int): Unit ={
 
+
+    //向所有Acceptor重新发送带有新ballotId的prepare请求
     acceptorIdToActorRef.foreach{case (name,actorRef) =>
       actorRef ! Prepare(instanceId,ballotId)
     }

@@ -11,7 +11,7 @@ case class AcceptorRegistered(acceptorName:String) extends PaxosMessage
 
 case class Prepare(instanceId:String,ballotId:Int) extends PaxosMessage
 
-case class Prepare_ack(instanceId:String,ballotId:Int,value:String) extends PaxosMessage
+case class Prepare_ack(instanceId:String,ballotId:Int,value:Option[String]) extends PaxosMessage
 
 case class Accept(instanceId:String,ballotId:Int,value:String) extends PaxosMessage
 

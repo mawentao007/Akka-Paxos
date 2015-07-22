@@ -1,45 +1,45 @@
 package Acceptor
 
-import SystemMessage.{Prepare, AcceptorRegistered, RegisterAcceptor}
+import SystemMessage._
 import akka.actor._
+
+import scala.collection.mutable.HashMap
 
 object Acceptor {
   def main(args:Array[String]) {
     val leaderAddress = "akka.tcp://Akka-Paxos@127.0.0.1:5150/user/leader"
     val systemName="Akka-Paxos"
     val acceptorName = "acceptorOne"
-    val acceptor = new Acceptor
-    acceptor.start(systemName,acceptorName,leaderAddress)
+    val acceptor = new Acceptor(acceptorName)
+    acceptor.start(systemName,leaderAddress)
 
   }
 }
 
 
-class Acceptor {
+class Acceptor(val acceptorName:String) {
 
   var acceptorActor:ActorRef = _
   var leaderAddress:String = _
-  var acceptorName:String = _
+  var leader:ActorSelection = _
 
-  def start(systemName:String,_acceptorName:String,_leaderAddress:String): Unit ={
+  val instanceIdToInstance = new HashMap[String,Instance]
+
+  def start(systemName:String,_leaderAddress:String): Unit ={
     leaderAddress = _leaderAddress
-    acceptorName = _acceptorName
     implicit val system = ActorSystem(systemName)
     acceptorActor = system.actorOf(Props(new AcceptorActor), name = acceptorName)
   }
 
 
-
-
   class AcceptorActor extends Actor {
 
     // create the remote actor,akka.tcp is very important
-    val leader = context.actorSelection(leaderAddress)
-
-
+    val leaderActor = context.actorSelection(leaderAddress)
+    leader = leaderActor
 
     override def preStart(): Unit ={
-      leader ! RegisterAcceptor(acceptorName)
+      leaderActor ! RegisterAcceptor(acceptorName)
     }
 
     def receive = {
@@ -50,10 +50,25 @@ class Acceptor {
         println("receiving Acceptor Registered message " + acceptorName)
 
       case Prepare(instanceId,ballotId) =>
-        println(instanceId + " " + ballotId)
-
-
+        println("receive Prepare " + instanceId + " " + ballotId)
+        if(instanceIdToInstance.contains(instanceId)){
+          instanceIdToInstance(instanceId).handlePrepareReq(ballotId)
+        } else{
+          handleNewInstance(instanceId,ballotId).handlePrepareReq(ballotId)
+        }
     }
+  }
+
+  def sendPrepareAck(instanceId:String,ballotId:Int,value:Option[String]): Unit ={
+    println("send prepare ack value is " + value)
+    leader ! Prepare_ack(instanceId,ballotId,value)
+  }
+
+  private def handleNewInstance(instanceId:String,ballotId:Int): Instance ={
+    println("handle new Instance")
+    val newInstance = new Instance(this,instanceId)
+    instanceIdToInstance.put(instanceId,newInstance)
+    newInstance
   }
 
 }
