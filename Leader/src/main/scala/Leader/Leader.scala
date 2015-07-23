@@ -5,6 +5,7 @@ import akka.actor._
 import scala.collection.mutable._
 import Util.Logging
 
+
 object Leader{
   def main(args:Array[String]) {
     val systemName="Akka-Paxos"
@@ -16,18 +17,21 @@ object Leader{
 
 class Leader(val name:String) extends Logging{
 
-  var leaderActor:ActorRef = _
 
-  var instanceIdInt = 0
+  private  var acceptorNum:Int = 0
 
-  val acceptorIdToActorRef = new HashMap[String,ActorRef]
+  private var leaderActor:ActorRef = _
 
-  val instanceIdToInstance = new HashMap[String,Instance]
+  private var instanceIdInt = 0
 
-  val request:Stack[String] = new Stack[String]()
+  private val acceptorIdToActorRef = new HashMap[String,ActorRef]
+
+  private val instanceIdToInstance = new HashMap[String,Instance]
+
+  private val request:Stack[String] = new Stack[String]()
 
 
-  def start(systemName:String): Unit ={
+  private def start(systemName:String): Unit ={
     val system = ActorSystem(systemName)
     leaderActor = system.actorOf(Props(new LeaderActor),name = name)
     logInfo("start")
@@ -41,6 +45,8 @@ class Leader(val name:String) extends Logging{
       case RegisterAcceptor(acceptorName) =>
         logInfo("RegisterAcceptor " + acceptorName)
         acceptorIdToActorRef.put(acceptorName,sender)
+        acceptorNum = acceptorNum + 1
+        //TODO 新加入acceptor之后,所有未被选中(chosen)的提案中的quorum要被重新设置
         replyAcceptor
         proposeNewInstance
         proposeNewInstance
@@ -69,22 +75,26 @@ class Leader(val name:String) extends Logging{
   def proposeNewInstance = {
     //创建新的实例并添加到map中记录
     val instance = new Instance(this,generateNewInstanceId)
+    instance.setQuorum(acceptorNum)
+
     instanceIdToInstance.put(instance.instanceId,instance)
 
-    //将该实例发送给所有的Acceptor进行准备工作
-    acceptorIdToActorRef.foreach{case (name,actorRef) =>
-      actorRef ! Prepare(instance.instanceId,0)
-    }
   }
 
-  def reProposeInstance(instanceId:String,ballotId:Int): Unit ={
-
-
+  def sendPrepare_backend(instanceId:String,ballotId:Int) = {
     //向所有Acceptor重新发送带有新ballotId的prepare请求
     acceptorIdToActorRef.foreach{case (name,actorRef) =>
       actorRef ! Prepare(instanceId,ballotId)
     }
   }
+
+  def sendAccept_backend(instanceId:String,ballotId:Int,value:String) = {
+    //向所有Acceptor重新发送带有新ballotId的prepare请求
+    acceptorIdToActorRef.foreach{case (name,actorRef) =>
+      actorRef ! Accept(instanceId,ballotId,value)
+    }
+  }
+
 
   private def generateNewInstanceId:String = {
     instanceIdInt = instanceIdInt + 1
