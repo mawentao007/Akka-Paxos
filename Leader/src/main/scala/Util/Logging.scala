@@ -27,4 +27,9 @@ trait Logging {
   protected def logInfo(msg: => String) {
     if (log.isInfoEnabled) log.info(msg)
   }
+
+  protected def logWarn(msg: => String) {
+    if (log.isWarnEnabled) log.warn(msg)
+  }
+
 }

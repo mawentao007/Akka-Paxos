@@ -30,6 +30,8 @@ class Instance(backend:Leader,val instanceId:String) extends Logging {
 
   def  sendPrepare = {
     instanceState = PREPARE
+    clearPrepareAckNum
+    clearAcceptAckNum
     backend.sendPrepare_backend(instanceId,ballotId)
   }
 
@@ -41,33 +43,29 @@ class Instance(backend:Leader,val instanceId:String) extends Logging {
         //最大的回复所带有的value值。
         //只处理比当前ballot大或者相等的回复,小的ballot被自动忽略
         case Some(ackValue) => if (ackBallotId > ballotId) {
-          ballotId = ackBallotId
-          instanceValue = ackValue
-          reSendPrepare
-        } else if (ackBallotId == ballotId) {
-          if (instanceValue == null) {
+            ballotId = ackBallotId + 1
             instanceValue = ackValue
+            sendPrepare
+          } else if (ackBallotId == ballotId) {
+           if (instanceValue == null) {
+             instanceValue = ackValue
+           }
+            prepareAckNum = prepareAckNum + 1
+            checkPrepareNum
           }
-          acceptAckNum = acceptAckNum + 1
-        }
 
         case None => if (ackBallotId > ballotId) {
-          ballotId = ackBallotId
-          reSendPrepare
+          ballotId = ackBallotId + 1
+          sendPrepare
         } else if (ackBallotId == ballotId) {
-          acceptAckNum = acceptAckNum + 1
+          prepareAckNum = prepareAckNum + 1
+          checkPrepareNum
         }
       }
     }
   }
 
 
-  private def reSendPrepare: Unit ={
-    instanceState = PREPARE
-    upBallotId
-    clearPrepareAckNum
-    backend.sendPrepare_backend(instanceId,ballotId)
-  }
 
   private def sendAccept = {
     //只有在ACCEPT状态下才会进行accept相关操作
@@ -76,33 +74,52 @@ class Instance(backend:Leader,val instanceId:String) extends Logging {
     }
   }
 
-  private def handleAcceptAck(ackBallotId:Int,ackVal:Option[String]) = {
+  def handleAcceptAck(ackBallotId:Int) = {
     //只有在ACCEPT状态下才会进行accept相关操作
-    if(instanceState == ACCEPT)
-
-  }
-
-
-
-  private def checkAcceptNum = {
-    if(acceptAckNum >= quorums){
-      instanceState = ACCEPT
-      sendAccept
+    if(instanceState == ACCEPT){
+      if(ackBallotId > ballotId){
+        ballotId = ackBallotId + 1
+        instanceState = PREPARE
+        clearAcceptAckNum
+        sendPrepare
+      }else if(ackBallotId ==  ballotId){
+        acceptAckNum = acceptAckNum + 1
+        checkAcceptNum
+      }
     }
   }
 
-  private def upBallotId = ballotId = ballotId + 1
-
-  private def clearPrepareAckNum = prepareAckNum = 0
-
-  def setQuorum(num:Int) = {
-    quorums = num / 2 + 1
+  private def sendSubmit = {
+    backend.sendSubmit_backend(instanceId,instanceValue)
   }
 
 
 
+  private def checkPrepareNum = {
+    if(prepareAckNum >= quorums){
+      instanceState = ACCEPT
+      sendAccept
+      clearPrepareAckNum
+    }
+  }
+
+  private def checkAcceptNum = {
+    if(acceptAckNum >= quorums){
+      instanceState = CHOSEN
+      sendSubmit
+    }
+
+  }
 
 
+  private def clearPrepareAckNum = prepareAckNum = 0
 
+  private def clearAcceptAckNum = acceptAckNum = 0
+
+
+  //Acceptor数量改变的时候，对于未提交的实例要重新设置多数派数量
+  def setQuorum(num:Int) = {
+    quorums = num / 2 + 1
+  }
 
 }

@@ -28,7 +28,10 @@ class Leader(val name:String) extends Logging{
 
   private val instanceIdToInstance = new HashMap[String,Instance]
 
-  private val request:Stack[String] = new Stack[String]()
+  //实例号到实例值映射
+  private val finishedInstance = new HashMap[String,String]
+
+  private val request:Stack[String] = new Stack[String]
 
 
   private def start(systemName:String): Unit ={
@@ -51,17 +54,22 @@ class Leader(val name:String) extends Logging{
         proposeNewInstance
         proposeNewInstance
 
-
-      case msg:String => println(msg)
-
       case Prepare_ack(instanceId,ballotId,value) =>
-        println("receive prepare_ack " + instanceId + " " + ballotId)
-        println(value)
-        value match{
-          case None => println("No value of " + "[ " + instanceId + " , " + ballotId + " ]")
-          case Some(s) => "string is " + s
+        logInfo("receive prepare_ack [" + instanceId + "," + ballotId + "]")
+        if(!finishedInstance.contains(instanceId)) {
+          instanceIdToInstance.get(instanceId) match{
+            case Some(instance) => instance.handlePrepareAck(ballotId,value)
+            case None =>  logWarn(instanceId + "not in list")
+          }
         }
 
+      case Accept_ack(instanceId,ballotId)=>
+        if(!finishedInstance.contains(instanceId)) {
+          instanceIdToInstance.get(instanceId) match {
+            case Some(instance) => instance.handleAcceptAck(ballotId)
+            case None => logWarn(instanceId + "not in list")
+          }
+        }
     }
   }
 
@@ -78,6 +86,7 @@ class Leader(val name:String) extends Logging{
     instance.setQuorum(acceptorNum)
 
     instanceIdToInstance.put(instance.instanceId,instance)
+    sendPrepare_backend(instance.instanceId,0)
 
   }
 
@@ -93,6 +102,18 @@ class Leader(val name:String) extends Logging{
     acceptorIdToActorRef.foreach{case (name,actorRef) =>
       actorRef ! Accept(instanceId,ballotId,value)
     }
+  }
+
+  def sendSubmit_backend(instanceId:String,value:String) = {
+
+    finishedInstance.put(instanceId,value)
+    logInfo("proposal finished [ " + instanceId + " , " + value + " ]" )
+    //TODO 除了acceptor，应该还有learner，以及其它proposer
+    acceptorIdToActorRef.foreach{case (name,actorRef) =>
+      actorRef ! Submit(instanceId,value)
+    }
+    instanceIdToInstance.remove(instanceId)
+
   }
 
 

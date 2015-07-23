@@ -26,6 +26,8 @@ class Acceptor(val acceptorName:String) extends Logging{
 
   val instanceIdToInstance = new HashMap[String,Instance]
 
+  val finishedInstanceIdToValue = new HashMap[String,String]
+
   def start(systemName:String,_leaderAddress:String): Unit ={
     leaderAddress = _leaderAddress
     implicit val system = ActorSystem(systemName)
@@ -48,31 +50,55 @@ class Acceptor(val acceptorName:String) extends Logging{
         println(msg)
 
       case AcceptorRegistered(acceptorName) =>
-        println("receiving Acceptor Registered message " + acceptorName)
+        logInfo("receiving Acceptor Registered message " + acceptorName)
 
       case Prepare(instanceId,ballotId) =>
-        println("receive Prepare " + instanceId + " " + ballotId)
-        if(instanceIdToInstance.contains(instanceId)){
-          instanceIdToInstance(instanceId).handlePrepareReq(ballotId)
-        } else{
-          handleNewInstance(instanceId,ballotId).handlePrepareReq(ballotId)
+        logInfo("receive Prepare [" + instanceId + "," + ballotId + "]")
+        //如果实例未提交，则开始处理流程，创建新实例或处理当前实例
+        if(!finishedInstanceIdToValue.contains(instanceId)) {
+          if (instanceIdToInstance.contains(instanceId)) {
+            instanceIdToInstance(instanceId).handlePrepareReq(ballotId)
+          } else {
+            handleNewInstance(instanceId,ballotId).handlePrepareReq(ballotId)
+          }
         }
+
+      case Accept(instanceId,ballotId,value) =>
+        logInfo("receive Accept [" + instanceId + "," + ballotId + "," + value +  "]")
+        //TODO 异常验证，例如实例不存在在当前列表中
+        if(!finishedInstanceIdToValue.contains(instanceId)) {
+            instanceIdToInstance.get(instanceId) match{
+              case Some(instance) => instance.handleAcceptReq(ballotId,value)
+              case None => logWarn(instanceId + " not in list")
+            }
+        }
+
+      case Submit(instanceId,value) =>
+        finishedInstanceIdToValue.put(instanceId,value)
+        instanceIdToInstance.remove(instanceId)
+        logInfo("instance submitted [" + instanceId + "," + value + "]")
+
     }
-  }
-
-
-  def sendPrepareAck(instanceId:String,ballotId:Int,value:Option[String]): Unit ={
-    println("send prepare ack value is " + value)
-    leader ! Prepare_ack(instanceId,ballotId,value)
   }
 
   //收到的Instance以前从未遇到过
   private def handleNewInstance(instanceId:String,ballotId:Int): Instance ={
-    println("handle new Instance")
+    logInfo("handle new Instance [" + instanceId + "," + ballotId + "]")
     val newInstance = new Instance(this,instanceId)
     instanceIdToInstance.put(instanceId,newInstance)
     newInstance
   }
+
+
+  def sendPrepareAck_backend(instanceId:String,ballotId:Int,value:Option[String]): Unit ={
+    leader ! Prepare_ack(instanceId,ballotId,value)
+  }
+
+  def sendAcceptAck_backend(instanceId:String,ballotId:Int): Unit ={
+    leader ! Accept_ack(instanceId,ballotId)
+  }
+
+
 
 }
 
