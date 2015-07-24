@@ -2,6 +2,7 @@ package Acceptor
 
 import SystemMessage._
 import akka.actor._
+import com.typesafe.config.ConfigFactory
 
 import scala.collection.mutable.HashMap
 import Util.Logging
@@ -30,7 +31,9 @@ class Acceptor(val acceptorName:String) extends Logging{
 
   def start(systemName:String,_leaderAddress:String): Unit ={
     leaderAddress = _leaderAddress
-    implicit val system = ActorSystem(systemName)
+    //通过载入不同的conf文件来更改系统配置
+    val system =
+      ActorSystem(systemName, ConfigFactory.load("test"))
     acceptorActor = system.actorOf(Props(new AcceptorActor), name = acceptorName)
   }
 
