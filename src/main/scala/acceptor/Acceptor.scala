@@ -9,13 +9,12 @@ import Util.Logging
 import util._
 
 object Acceptor {
-  def main(args:Array[String]) {
-    val leaderAddress = "akka.tcp://Akka-Paxos@127.0.0.1:5150/user/leader"
-    val systemName="Akka-Paxos"
-    val acceptorName = "acceptorOne"
+  def startAcceptor(name:String) = {
+    val leaderAddress = "akka.tcp://leaderOne@127.0.0.1:5150/user/leaderOne"
+    val systemName = name
+    val acceptorName = systemName
     val acceptor = new Acceptor(acceptorName)
-    acceptor.start(systemName,leaderAddress)
-
+    acceptor.start(systemName, leaderAddress)
   }
 }
 

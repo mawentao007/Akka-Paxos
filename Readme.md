@@ -18,8 +18,10 @@
 -----
 概工程包含若干个子工程，目前有leader和acceptor两个角色，分布式部署需要将每个角色对应的工程文件分别拷贝到不同节点运行，执行代码:
     
-    cd projectDir
-    sbt run
+    usage: sbt "run [argument]"
+           sbt "run leader"   :   开启一个新的leader
+           sbt "run acceptor" :   开启一个新的acceptor
+
     
 其它
 ----

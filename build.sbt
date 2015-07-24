@@ -1,4 +1,4 @@
-name := "Acceptor"
+name := "Akka-Paxos"
 
 version := "1.0"
 

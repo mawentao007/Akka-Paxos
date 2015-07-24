@@ -8,11 +8,16 @@ import Util.Logging
 
 
 object Leader{
-  def main(args:Array[String]) {
-    val systemName="Akka-Paxos"
-    val name = "leader"
-    val leader = new Leader(name)
+  def startLeader(name:String) = {
+    val systemName = name
+    val leaderName = systemName
+    val leader = new Leader(leaderName)
     leader.start(systemName)
+    /*TODO 创建动态application.conf模版，根据配置文件生成新的conf并载入，实现动态配置
+    设置master节点负责分发实例号
+
+     */
+
   }
 }
 
