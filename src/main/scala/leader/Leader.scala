@@ -1,6 +1,7 @@
-package Leader
+package leader
 
-import SystemMessage._
+import com.typesafe.config.ConfigFactory
+import util._
 import akka.actor._
 import scala.collection.mutable._
 import Util.Logging
@@ -26,7 +27,7 @@ class Leader(val name:String) extends Logging{
 
   private val acceptorIdToActorRef = new HashMap[String,ActorRef]
 
-  private val instanceIdToInstance = new HashMap[String,Instance]
+  private val instanceIdToInstance = new HashMap[String,LeaderInstance]
 
   //实例号到实例值映射
   private val finishedInstance = new HashMap[String,String]
@@ -35,7 +36,7 @@ class Leader(val name:String) extends Logging{
 
 
   private def start(systemName:String): Unit ={
-    val system = ActorSystem(systemName)
+    val system = ActorSystem(systemName,ConfigFactory.load("application"))
     leaderActor = system.actorOf(Props(new LeaderActor),name = name)
     logInfo("start")
 
@@ -75,14 +76,14 @@ class Leader(val name:String) extends Logging{
 
   def replyAcceptor: Unit ={
     acceptorIdToActorRef.foreach{case (senderName,actorRef) =>
-        actorRef ! AcceptorRegistered(senderName)
+        actorRef ! util.AcceptorRegistered(senderName)
 
     }
   }
 
   def proposeNewInstance = {
     //创建新的实例并添加到map中记录
-    val instance = new Instance(this,generateNewInstanceId)
+    val instance = new LeaderInstance(this,generateNewInstanceId)
     instance.setQuorum(acceptorNum)
 
     instanceIdToInstance.put(instance.instanceId,instance)
@@ -93,14 +94,14 @@ class Leader(val name:String) extends Logging{
   def sendPrepare_backend(instanceId:String,ballotId:Int) = {
     //向所有Acceptor重新发送带有新ballotId的prepare请求
     acceptorIdToActorRef.foreach{case (name,actorRef) =>
-      actorRef ! Prepare(instanceId,ballotId)
+      actorRef ! util.Prepare(instanceId,ballotId)
     }
   }
 
   def sendAccept_backend(instanceId:String,ballotId:Int,value:String) = {
     //向所有Acceptor重新发送带有新ballotId的prepare请求
     acceptorIdToActorRef.foreach{case (name,actorRef) =>
-      actorRef ! Accept(instanceId,ballotId,value)
+      actorRef ! util.Accept(instanceId,ballotId,value)
     }
   }
 
@@ -110,7 +111,7 @@ class Leader(val name:String) extends Logging{
     logInfo("proposal finished [ " + instanceId + " , " + value + " ]" )
     //TODO 除了acceptor，应该还有learner，以及其它proposer
     acceptorIdToActorRef.foreach{case (name,actorRef) =>
-      actorRef ! Submit(instanceId,value)
+      actorRef ! util.Submit(instanceId,value)
     }
     instanceIdToInstance.remove(instanceId)
 

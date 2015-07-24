@@ -1,4 +1,4 @@
-package Acceptor
+package acceptor
 
 import Util.Logging
 
@@ -6,7 +6,7 @@ import Util.Logging
 /**
  * Created by marvin on 15-7-20.
  */
-class Instance(backend:Acceptor,val instanceId:String) extends Logging{
+class AcceptorInstance(backend:Acceptor,val instanceId:String) extends Logging{
   private var ballotId:Int = -1
 
   private var instanceValue:String = null

@@ -1,11 +1,12 @@
-package Acceptor
+package acceptor
 
-import SystemMessage._
+
 import akka.actor._
 import com.typesafe.config.ConfigFactory
 
 import scala.collection.mutable.HashMap
 import Util.Logging
+import util._
 
 object Acceptor {
   def main(args:Array[String]) {
@@ -25,7 +26,7 @@ class Acceptor(val acceptorName:String) extends Logging{
   var leaderAddress:String = _
   var leader:ActorSelection = _
 
-  val instanceIdToInstance = new HashMap[String,Instance]
+  val instanceIdToInstance = new HashMap[String,AcceptorInstance]
 
   val finishedInstanceIdToValue = new HashMap[String,String]
 
@@ -45,7 +46,7 @@ class Acceptor(val acceptorName:String) extends Logging{
     leader = leaderActor
 
     override def preStart(): Unit ={
-      leaderActor ! RegisterAcceptor(acceptorName)
+      leaderActor ! util.RegisterAcceptor(acceptorName)
     }
 
     def receive = {
@@ -85,20 +86,20 @@ class Acceptor(val acceptorName:String) extends Logging{
   }
 
   //收到的Instance以前从未遇到过
-  private def handleNewInstance(instanceId:String,ballotId:Int): Instance ={
+  private def handleNewInstance(instanceId:String,ballotId:Int): AcceptorInstance ={
     logInfo("handle new Instance [" + instanceId + "," + ballotId + "]")
-    val newInstance = new Instance(this,instanceId)
+    val newInstance = new AcceptorInstance(this,instanceId)
     instanceIdToInstance.put(instanceId,newInstance)
     newInstance
   }
 
 
   def sendPrepareAck_backend(instanceId:String,ballotId:Int,value:Option[String]): Unit ={
-    leader ! Prepare_ack(instanceId,ballotId,value)
+    leader ! util.Prepare_ack(instanceId,ballotId,value)
   }
 
   def sendAcceptAck_backend(instanceId:String,ballotId:Int): Unit ={
-    leader ! Accept_ack(instanceId,ballotId)
+    leader ! util.Accept_ack(instanceId,ballotId)
   }
 
 

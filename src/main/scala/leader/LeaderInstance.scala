@@ -1,8 +1,8 @@
-package Leader
+package leader
 
 
 import Util.Logging
-import InstanceState._
+import util.InstanceState._
 
 /**
  * Created by marvin on 15-7-20.
@@ -13,7 +13,7 @@ import InstanceState._
  */
 
 
-class Instance(backend:Leader,val instanceId:String) extends Logging {
+class LeaderInstance(backend:Leader,val instanceId:String) extends Logging {
 
   private var quorums:Int = 0
 
